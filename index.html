@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#176b57">
+<title>ثبت ساعت کاری</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+:root{font-family:Tahoma,"Noto Sans Arabic",sans-serif;color:#172b26;background:#f3f7f5}
+*{box-sizing:border-box}body{margin:0;padding:18px;max-width:720px;margin-inline:auto}
+header{padding:8px 2px 16px}h1{font-size:1.45rem;margin:0 0 6px;color:#145b49}
+.sub{color:#5d716a;font-size:.92rem}
+.panel{background:white;border:1px solid #dce8e2;border-radius:18px;padding:17px;margin:12px 0}
+.status{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{border-radius:99px;padding:7px 12px;background:#edf3f0;color:#466258;font-size:.88rem}
+.pill.on{background:#e2f5ec;color:#12633f}
+#timer{font-size:2.1rem;font-weight:700;direction:ltr;text-align:center;margin:17px 0 5px;font-variant-numeric:tabular-nums}
+#since{text-align:center;color:#60746c;font-size:.9rem;min-height:22px}
+button,input,select{font:inherit}
+button{border:0;border-radius:12px;padding:13px 16px;min-height:48px;cursor:pointer;font-weight:700}
+.primary{background:#176b57;color:white;width:100%;font-size:1.05rem}
+.stop{background:#a63838;color:white;width:100%;font-size:1.05rem}
+.secondary{background:#eaf1ed;color:#244c3f}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+label{display:block;font-size:.9rem;color:#52675f;margin:8px 0 6px}
+input,select{width:100%;border:1px solid #cfddd5;border-radius:10px;padding:11px;background:white;color:#172b26;min-height:46px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#f1f6f3;border-radius:12px;padding:12px}
+.stat small{display:block;color:#65776f;margin-bottom:5px}.stat strong{font-size:1.25rem}
+h2{font-size:1.05rem;margin:0 0 12px}
+.entry{border-top:1px solid #e8efeb;padding:12px 0;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.entry:first-child{border-top:0}.entry small{display:block;color:#6a7b74;margin-top:4px}
+.entry strong{white-space:nowrap}.empty{color:#74847d;text-align:center;padding:18px 4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions button{flex:1}
+.place-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.place-button{background:#e5f2ec;color:#145b49;border:1px solid #c5dfd2;min-height:60px}
+.place-button:active{transform:scale(.98)}
+.place-button[disabled]{opacity:.55}
+@media(max-width:380px){.place-buttons{grid-template-columns:1fr}}
+.note{font-size:.82rem;line-height:1.8;color:#65776f}
+@media(max-width:380px){body{padding:12px}.row{grid-template-columns:1fr}.controls{grid-template-columns:1fr}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+<header><h1>ثبت ساعت کاری</h1><div class="sub">ثبت شروع و پایان هر نوبت کاری با محاسبه خودکار کارکرد شمسی</div></header>
+<section class="panel">
+ <div class="status"><span id="today" class="pill">امروز</span><span id="state" class="pill">آماده شروع</span></div>
+ <div id="timer">۰۰:۰۰:۰۰</div><div id="since">هنوز نوبت کاری شروع نشده است</div>
+ <div id="placeButtons" class="place-buttons"></div><button id="mainBtn" class="primary" style="margin-top:10px">■ پایان کار</button>
+</section>
+<section class="panel">
+ <h2>گزارش کارکرد</h2>
+ <div class="row">
+  <div><label for="month">ماه گزارش (شمسی)</label><select id="month"></select></div>
+  <div><label for="placeSelect">انتخاب محل کار / شرت‌کات</label><select id="placeSelect"></select></div>
+ </div>
+ <div class="row"><div><label for="newPlace">نام محل جدید</label><input id="newPlace" placeholder="مثلاً درمانگاه مرکزی"></div><div style="display:flex;align-items:end;gap:6px"><button id="addPlace" class="secondary" style="flex:1">افزودن شرت‌کات</button><button id="delPlace" class="secondary" style="flex:1">حذف انتخاب</button></div></div>
+ <div class="statgrid" style="margin-top:12px">
+  <div class="stat"><small>مجموع این ماه</small><strong id="monthTotal">۰ ساعت</strong></div>
+  <div class="stat"><small>مجموع امروز</small><strong id="dayTotal">۰ ساعت</strong></div>
+ </div>
+</section>
+
+<section class="panel">
+ <h2>نوبت‌های ماه انتخاب‌شده</h2>
+ <div id="entries"><div class="empty">هنوز نوبتی ثبت نشده است.</div></div>
+ <div class="actions">
+  <button id="export" class="secondary">خروجی CSV</button>
+  <button id="clearMonth" class="secondary">پاک‌کردن ماه</button>
+ </div>
+</section>
+<section class="panel"><h2>پشتیبان اطلاعات</h2><div class="actions"><button id="backup" class="secondary">ذخیره پشتیبان</button><button id="restore" class="secondary">بازیابی پشتیبان</button></div><input id="backupFile" type="file" accept="application/json,.json" style="display:none"><p class="note">برای نگهداری شرت‌کات‌ها و نوبت‌ها، پشتیبان بگیر. فایل پشتیبان را می‌توان بعداً بازیابی کرد.</p></section>
+<p class="note">اطلاعات فقط در حافظه همین مرورگر و روی همین دستگاه ذخیره می‌شود. با پاک‌کردن داده‌های مرورگر ممکن است اطلاعات حذف شود؛ هر چند وقت یک‌بار خروجی CSV بگیرید. این ابزار آفلاین است و تبلیغ یا حساب کاربری ندارد.</p>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[+d]);
+function div(a,b){return Math.trunc(a/b)}
+function g2d(gy,gm,gd){
+ let d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*((gm+9)%12)+2,5)+gd-34840408;
+ d=d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;return d;
+}
+function d2g(jdn){
+ // Gregorian conversion using the civil-date algorithm (avoids negative-modulo edge cases).
+ const a=jdn+32044;
+ const b=div(4*a+3,146097);
+ const c=a-div(146097*b,4);
+ const d=div(4*c+3,1461);
+ const e=c-div(1461*d,4);
+ const m=div(5*e+2,153);
+ const gd=e-div(153*m+2,5)+1;
+ const gm=m+3-12*div(m,10);
+ const gy=100*b+d-4800+div(m,10);
+ return [gy,gm,gd];
+}
+function jalCal(jy){
+ const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+ let bl=breaks.length,gy=jy+621,leapJ=-14,jp=breaks[0],jm,jump,leap,leapG,march;
+ if(jy<jp||jy>=breaks[bl-1]) return {gy,march:20};
+ for(let i=1;i<bl;i++){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ+=div(jump,33)*8+div(jump%33,4);jp=jm;}
+ let n=jy-jp;
+ leapJ+=div(n,33)*8+div(n%33+3,4);
+ if(jump%33===4&&jump-n===4)leapJ++;
+ leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;
+ march=20+leapJ-leapG;
+ if(jump-n<6)n=n-jump+div(jump+4,33)*33;
+ leap=((n+1)%33-1)%4;if(leap===-1)leap=4;
+ return {gy,march,leap};
+}
+function j2d(jy,jm,jd){
+ const r=jalCal(jy);return g2d(r.gy,3,r.march)+(jm-1)*31-div(jm,7)*(jm-7)+jd-1;
+}
+function d2j(jdn){
+ const g=d2g(jdn); // Gregorian date
+ let gy=g[0],jy=gy-621,r=jalCal(jy),jdn1=g2d(gy,3,r.march),k=jdn-jdn1;
+ if(k>=0){if(k<=185)return [jy,1+div(k,31),k%31+1];k-=186;}
+ else {jy--;k+=179;if(r.leap===1)k++;}
+ return [jy,7+div(k,30),k%30+1];
+}
+function jalToday(){
+ const d=new Date();return d2j(g2d(d.getFullYear(),d.getMonth()+1,d.getDate()));
+}
+function fmtJ(a){return `${fa(a[0])}/${fa(pad(a[1]))}/${fa(pad(a[2]))}`}
+function parseJ(s){
+ const m=s.trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+ if(!m)return null;const a=m.slice(1).map(Number);if(a[1]<1||a[1]>12||a[2]<1||a[2]>(a[1]<=6?31:a[1]<=11?30:30))return null;
+ return a;
+}
+function keyJ(a){return `${a[0]}-${pad(a[1])}-${pad(a[2])}`}
+function fromKey(k){return k.split('-').map(Number)}
+function gDate(j){return new Date(...d2g(j2d(...j)).slice(0,3).map((v,i)=>i===1?v-1:v))}
+function msOf(j,t){const [h,m]=t.split(':').map(Number);let dt=gDate(j);dt.setHours(h,m,0,0);return dt.getTime()}
+let data=[];try{data=JSON.parse(localStorage.getItem('worklog_jalali_v1')||'[]')}catch(e){}
+let places=[];try{places=JSON.parse(localStorage.getItem('worklog_places_v1')||'[]')}catch(e){}
+let active=localStorage.getItem('worklog_active_v1');try{active=active?JSON.parse(active):null}catch(e){active=null}
+const save=()=>{try{localStorage.setItem('worklog_jalali_v1',JSON.stringify(data));localStorage.setItem('worklog_places_v1',JSON.stringify(places));if(active)localStorage.setItem('worklog_active_v1',JSON.stringify(active));else localStorage.removeItem('worklog_active_v1');return true}catch(e){alert('ذخیره در مرورگر انجام نشد! لطفاً از بخش «پشتیبان اطلاعات» نسخه پشتیبان بگیر و برنامه را همیشه با همان مرورگر باز کن.');return false}};
+const nowJ=()=>jalToday();
+function dur(ms){let sec=Math.max(0,Math.floor(ms/1000)),h=div(sec,3600),m=div(sec%3600,60),s=sec%60;return `${fa(pad(h))}:${fa(pad(m))}:${fa(pad(s))}`}
+function mins(ms){return Math.max(0,Math.round(ms/60000))}
+function pretty(ms){let n=mins(ms),h=div(n,60),m=n%60;return `${fa(h)} ساعت و ${fa(m)} دقیقه`}
+function monthVal(j){return `${j[0]}-${pad(j[1])}`}
+function chosenMonth(){return $('month').value||monthVal(nowJ())}
+function initMonthPicker(){
+ const names=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+ const current=nowJ(), opts=[];
+ for(let y=current[0]+2;y>=current[0]-5;y--){
+   for(let m=12;m>=1;m--) opts.push(`<option value="${y}-${pad(m)}">${names[m-1]} ${fa(y)}</option>`);
+ }
+ $('month').innerHTML=opts.join('');
+ $('month').value=monthVal(current);
+}
+function render(){
+ const j=nowJ();$('today').textContent='امروز: '+fmtJ(j);
+ $('state').textContent=active?'در حال کار':'آماده شروع';$('state').className='pill'+(active?' on':'');
+ $('mainBtn').textContent=active?'■ پایان کار':'▶ شروع کار';$('mainBtn').className=active?'stop':'primary';
+ $('since').textContent=active?`شروع: ${fmtJ(fromKey(active.date))}، ساعت ${active.time}${active.place?' · '+active.place:''}`:'برای ثبت شروع نوبت کاری بزنید.';
+ $('monthTotal').textContent=pretty(data.filter(x=>x.date.slice(0,7)===chosenMonth()).reduce((a,x)=>a+x.end-x.start,0));
+ $('dayTotal').textContent=pretty(data.filter(x=>x.date===keyJ(j)).reduce((a,x)=>a+x.end-x.start,0));
+ const list=data.filter(x=>x.date.slice(0,7)===chosenMonth()).sort((a,b)=>b.start-a.start);
+ renderPlaceButtons();$('mainBtn').style.display=active?'block':'none';
+ $('entries').innerHTML=list.length?list.map(x=>`<div class="entry"><div><strong>${fmtJ(fromKey(x.date))}</strong><small>${x.startLabel} تا ${x.endLabel}${x.place?' · '+esc(x.place):''}</small></div><div style="text-align:left"><strong>${pretty(x.end-x.start)}</strong><small><button class="secondary" data-edit="${x.id}" style="padding:6px 10px;min-height:34px">اصلاح</button> <button class="secondary" data-del="${x.id}" style="padding:6px 10px;min-height:34px">حذف</button></small></div></div>`).join(''):'<div class="empty">برای این ماه نوبتی ثبت نشده است.</div>';
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function start(){
+ if(active){const end=Date.now();if(end<=active.start){alert('زمان پایان معتبر نیست.');return}
+ data.push({id:Date.now()+'',date:active.date,start:active.start,end,startLabel:active.time,endLabel:pad(new Date(end).getHours())+':'+pad(new Date(end).getMinutes()),place:active.place||''});active=null;
+ }else{const d=new Date(),j=nowJ();active={date:keyJ(j),start:Date.now(),time:pad(d.getHours())+':'+pad(d.getMinutes()),place:$('placeSelect').value};}
+ save();render();
+}
+$('mainBtn').addEventListener('click',()=>{if(active)start();else alert('برای شروع، دکمه درمانگاه موردنظر را بزنید.');});
+initMonthPicker();renderPlaces();renderPlaceButtons();
+$('month').addEventListener('change',render);
+
+$('entries').addEventListener('click',e=>{
+ const ed=e.target.closest('[data-edit]'); if(ed){const x=data.find(z=>z.id===ed.dataset.edit);if(!x)return;
+ const date=prompt('تاریخ شمسی (YYYY/MM/DD):',fmtJ(fromKey(x.date)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));if(date===null)return;const j=parseJ(date);if(!j){alert('تاریخ نامعتبر');return;}
+ const st=prompt('ساعت شروع (HH:MM):',x.startLabel);if(st===null)return;const en=prompt('ساعت پایان (HH:MM):',x.endLabel);if(en===null)return;
+ if(!/^\d{1,2}:\d{2}$/.test(st)||!/^\d{1,2}:\d{2}$/.test(en)){alert('ساعت نامعتبر');return;}
+ const place=prompt('محل کار:',x.place||$('placeSelect').value||'');if(place===null)return;
+ const a=msOf(j,st),b=msOf(j,en);if(b<=a){alert('پایان باید بعد از شروع باشد');return;}x.date=keyJ(j);x.start=a;x.end=b;x.startLabel=st;x.endLabel=en;x.place=place;save();render();return;
+ }
+ const b=e.target.closest('[data-del]');if(!b)return;if(confirm('این نوبت حذف شود؟')){data=data.filter(x=>x.id!==b.dataset.del);save();render()}
+});
+function renderPlaces(){ $('placeSelect').innerHTML=places.map(p=>`<option>${esc(p)}</option>`).join(''); if(!places.length)$('placeSelect').innerHTML='<option value="">(محل کار ثبت نشده)</option>';renderPlaceButtons();}
+function renderPlaceButtons(){const host=$('placeButtons');if(!host)return;host.innerHTML=places.length?places.map(p=>`<button class="place-button" data-place-start="${esc(p)}" ${active?'disabled':''}>▶ ${esc(p)}</button>`).join(''):'<div class="empty">ابتدا نام درمانگاه را اضافه کنید تا دکمه آن ساخته شود.</div>';}
+$('addPlace').addEventListener('click',()=>{const p=$('newPlace').value.trim();if(!p)return alert('نام محل را وارد کنید');if(!places.includes(p))places.push(p);$('newPlace').value='';renderPlaces();$('placeSelect').value=p;save();});
+$('placeButtons').addEventListener('click',e=>{const b=e.target.closest('[data-place-start]');if(!b||active)return;$('placeSelect').value=b.dataset.placeStart;start();});
+$('delPlace').addEventListener('click',()=>{const p=$('placeSelect').value;if(!p)return;if(confirm(`شرت‌کات «${p}» حذف شود؟`)){places=places.filter(x=>x!==p);renderPlaces();save();}});
+
+$('export').addEventListener('click',()=>{
+ const rows=[['تاریخ شمسی','شروع','پایان','مدت (دقیقه)','محل کار'],...data.filter(x=>x.date.slice(0,7)===chosenMonth()).map(x=>[fmtJ(fromKey(x.date)),x.startLabel,x.endLabel,mins(x.end-x.start),x.place])];
+ const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const a=document.createElement('a'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.href=url;a.download='work-hours-'+chosenMonth()+'.csv';a.click();URL.revokeObjectURL(url);
+});
+$('clearMonth').addEventListener('click',()=>{if(!confirm('تمام نوبت‌های ماه انتخاب‌شده حذف شوند؟'))return;data=data.filter(x=>x.date.slice(0,7)!==chosenMonth());save();render()});
+$('backup').addEventListener('click',()=>{const payload={version:1,data,places,active,createdAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='work-hours-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
+$('restore').addEventListener('click',()=>$('backupFile').click());
+$('backupFile').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const p=JSON.parse(reader.result);if(!Array.isArray(p.data)||!Array.isArray(p.places))throw new Error();if(!confirm('اطلاعات فعلی با اطلاعات فایل پشتیبان جایگزین شود؟'))return;data=p.data;places=p.places;active=p.active||null;save();renderPlaces();render();alert('بازیابی انجام شد.')}catch(err){alert('فایل پشتیبان معتبر نیست.')}e.target.value='';};reader.readAsText(file);});
+function tick(){if(active)$('timer').textContent=dur(Date.now()-active.start);else $('timer').textContent='۰۰:۰۰:۰۰'}
+render();tick();setInterval(tick,1000);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script>
+</body></html>
